@@ -7,11 +7,13 @@ set -e
 VERSION_URL="https://gist.githubusercontent.com/jsvd/12c60459ba0cc505dc56867561b41806/raw/f7ab015f496434cad1e97b9e4ccff0f00c31344a/versions.json"
 
 if [ "$ELASTIC_STACK_VERSION" ]; then
+    echo "Fetching versions from $VERSION_URL"
+    VERSIONS=$(curl $VERSION_URL)
     if [[ "$SNAPSHOT" = "true" ]]; then
-      ELASTIC_STACK_RETRIEVED_VERSION=$(curl $VERSION_URL -s | jq '.snapshots."'"$ELASTIC_STACK_VERSION"'"')
+      ELASTIC_STACK_RETRIEVED_VERSION=$(echo $VERSIONS | jq '.snapshots."'"$ELASTIC_STACK_VERSION"'"')
       echo $ELASTIC_STACK_RETRIEVED_VERSION
     else
-      ELASTIC_STACK_RETRIEVED_VERSION=$(curl $VERSION_URL -s | jq '.releases."'"$ELASTIC_STACK_VERSION"'"')
+      ELASTIC_STACK_RETRIEVED_VERSION=$(echo $VERSIONS | jq '.releases."'"$ELASTIC_STACK_VERSION"'"')
     fi
     if [[ "$ELASTIC_STACK_RETRIEVED_VERSION" != "null" ]]; then
       # remove starting and trailing double quotes
