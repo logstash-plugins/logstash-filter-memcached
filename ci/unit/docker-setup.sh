@@ -4,7 +4,7 @@
 # Ensure you have Docker installed locally and set the ELASTIC_STACK_VERSION environment variable.
 set -e
 
-VERSION_URL="https://gist.githubusercontent.com/jsvd/12c60459ba0cc505dc56867561b41806/raw/f7ab015f496434cad1e97b9e4ccff0f00c31344a/versions.json"
+VERSION_URL="https://raw.githubusercontent.com/elastic/logstash/master/ci/logstash_releases.json"
 
 if [ "$ELASTIC_STACK_VERSION" ]; then
     echo "Fetching versions from $VERSION_URL"
