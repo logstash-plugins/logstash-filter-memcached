@@ -4,7 +4,18 @@
 # Ensure you have Docker installed locally and set the ELASTIC_STACK_VERSION environment variable.
 set -e
 
+VERSION_URL= "https://gist.githubusercontent.com/jsvd/12c60459ba0cc505dc56867561b41806/raw/08edc632ac1a717d2e02e64b75850545ec371672/versions.json"
+
 if [ "$ELASTIC_STACK_VERSION" ]; then
+    ELASTIC_STACK_RETRIEVED_VERSION=$(curl $VERSION_URL -s | jq '."'"$ELASTIC_STACK_VERSION"'"')
+    if [[ "$ELASTIC_STACK_RETRIEVED_VERSION" != "null" ]]; then
+      # remove starting and trailing double quotes
+      ELASTIC_STACK_RETRIEVED_VERSION="${ELASTIC_STACK_RETRIEVED_VERSION%\"}"
+      ELASTIC_STACK_RETRIEVED_VERSION="${ELASTIC_STACK_RETRIEVED_VERSION#\"}"
+      echo "Translated $ELASTIC_STACK_VERSION to ${ELASTIC_STACK_RETRIEVED_VERSION}"
+      export ELASTIC_STACK_VERSION=$ELASTIC_STACK_RETRIEVED_VERSION
+    fi
+
     echo "Testing against version: $ELASTIC_STACK_VERSION"
 
     if [[ "$ELASTIC_STACK_VERSION" = *"-SNAPSHOT" ]]; then
