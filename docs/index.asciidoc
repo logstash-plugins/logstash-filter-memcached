@@ -74,7 +74,7 @@ In the following configuration, we would GET `fruit:banana` and `fruit:apple` fr
 filter {
   memcached {
     namespace => "fruit"
-    get {
+    get => {
       "banana" => "[fruit-stats][banana]"
       "apple"  => "[fruit-stats][apple]
     }
@@ -96,7 +96,7 @@ If specified, get the values for the given keys from memcached, and store them i
 ----
 filter {
   memcached {
-    get {
+    get => {
       "memcached-key-1" => "field1"
       "memcached-key-2" => "[nested][field2]"
     }
@@ -118,7 +118,7 @@ If specified, extracts the values from the given event fields, and sets the corr
 ----
 filter {
   memcached {
-    set {
+    set => {
       "field1"           => "memcached-key-1"
       "[nested][field2]" => "memcached-key-2"
     }
