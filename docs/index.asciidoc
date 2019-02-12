@@ -25,7 +25,43 @@ The Memcached filter provides integration with external data in Memcached.
 It currently provides the following facilities:
  - `get`: get values for one or more memcached keys and inject them into the event at the provided paths
  - `set`: set values from the event to the corresponding memcached keys
-
+ 
+==== EXAMPLES
+ 
+The this plugin enables key/value lookup enrichment against a Memcached object
+caching system. It supports both read (GET) and write (SET) operations. It is a
+notable addition for security analytics use cases. For example, you can use this
+plugin to query for a value, and set it if not found.
++
+GET example:
++
+[source,txt]
+-----
+memcached {
+    hosts => ["localhost"]
+    namespace => "convert_mm"
+    get => {
+      "%{millimeters}" => "[inches]"
+    }
+    add_tag => ["from_cache"]
+    id => "memcached-get"
+  }
+-----
++
+SET example:
++
+[source,txt]
+-----
+memcached {
+    hosts => ["localhost"]
+    namespace => "convert_mm"
+    set => {
+      "[inches]" => "%{millimeters}"
+    }
+    id => "memcached-set"
+  }
+-----
+ 
 [id="plugins-{type}s-{plugin}-options"]
 ==== Memcached Filter Configuration Options
 
