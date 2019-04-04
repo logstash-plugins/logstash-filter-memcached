@@ -159,7 +159,7 @@ class LogStash::Filters::Memcached < LogStash::Filters::Base
 
   def validate_connection_options
     {}.tap do |options|
-      options[:ttl] = @ttl
+      options[:expires_in] = @ttl
       options[:namespace] = @namespace unless @namespace.nil? || @namespace.empty?
     end
   end
