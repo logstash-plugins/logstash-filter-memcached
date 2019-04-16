@@ -1,3 +1,6 @@
+## 1.0.1
+ - Fixed link formatting issues in doc (#11)(https://github.com/logstash-plugins/logstash-filter-memcached/pull/11)
+
 ## 1.0.0
  - Updated to 1.0.0
 
