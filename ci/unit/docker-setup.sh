@@ -27,12 +27,16 @@ if [ "$ELASTIC_STACK_VERSION" ]; then
 
     if [[ "$ELASTIC_STACK_VERSION" = *"-SNAPSHOT" ]]; then
         cd /tmp
-        wget https://snapshots.elastic.co/docker/logstash-"$ELASTIC_STACK_VERSION".tar.gz
-        tar xfvz logstash-"$ELASTIC_STACK_VERSION".tar.gz  repositories
+
+        jq=".build.projects.\"logstash-docker\".packages.\"logstash-$ELASTIC_STACK_VERSION-docker-image.tar.gz\".url"
+        result=$(curl --silent https://artifacts-api.elastic.co/v1/versions/$ELASTIC_STACK_VERSION/builds/latest | jq -r $jq)
+        echo $result
+        curl $result > logstash-docker-image.tar.gz
+        tar xfvz logstash-docker-image.tar.gz  repositories
         echo "Loading docker image: "
         cat repositories
-        docker load < logstash-"$ELASTIC_STACK_VERSION".tar.gz
-        rm logstash-"$ELASTIC_STACK_VERSION".tar.gz
+        docker load < logstash-docker-image.tar.gz
+        rm logstash-docker-image.tar.gz
         cd -
     fi
 
