@@ -28,7 +28,7 @@ if [ "$ELASTIC_STACK_VERSION" ]; then
     if [[ "$ELASTIC_STACK_VERSION" = *"-SNAPSHOT" ]]; then
         cd /tmp
 
-        jq=".build.projects.\"logstash-docker\".packages.\"logstash-$ELASTIC_STACK_VERSION-docker-image.tar.gz\".url"
+        jq=".build.projects.logstash.packages.\"logstash-$ELASTIC_STACK_VERSION-docker-image.tar.gz\".url"
         result=$(curl --silent https://artifacts-api.elastic.co/v1/versions/$ELASTIC_STACK_VERSION/builds/latest | jq -r $jq)
         echo $result
         curl $result > logstash-docker-image.tar.gz
