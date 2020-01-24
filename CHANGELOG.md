@@ -1,3 +1,6 @@
+## 1.0.2
+ - Fixed issue with ttl not being set [#13](https://github.com/logstash-plugins/logstash-filter-memcached/pull/13)
+
 ## 1.0.1
  - Fixed link formatting issues in doc [#16](https://github.com/logstash-plugins/logstash-filter-memcached/pull/16)
 
