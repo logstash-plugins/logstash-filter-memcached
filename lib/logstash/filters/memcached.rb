@@ -1,6 +1,8 @@
 # encoding: utf-8
 require "logstash/filters/base"
 require "logstash/namespace"
+require 'dalli'
+
 
 # This filter provides facilities to interact with Memcached.
 class LogStash::Filters::Memcached < LogStash::Filters::Base
@@ -67,28 +69,59 @@ class LogStash::Filters::Memcached < LogStash::Filters::Base
   # NOTE: in Memcached, a value of 0 (default) means "never expire"
   config :ttl, :validate => :number, :default => 0
 
+  # Tags the event on failure. This can be used in later analysis.
+  config :tag_on_failure, :validate => :string, :default => "_memcached_failure"
+
   public
 
   attr_reader :cache
 
   def register
-    if @ttl < 0
-      logger.error("ttl cannot be negative")
-      fail("invalid ttl: cannot be negative")
-    end
+    raise(LogStash::ConfigurationError, "'ttl' option cannot be negative") if @ttl < 0
 
-    @cache = establish_connection
-  end # def register
+    @memcached_hosts = validate_connection_hosts
+    @memcached_options = validate_connection_options
+    begin
+      @cache = new_connection(@memcached_hosts, @memcached_options)
+    rescue => e
+      logger.error("failed to connect to memcached", hosts: @memcached_hosts, options: @memcached_options, message: e.message)
+      fail("failed to connect to memcached")
+    end
+    @connected = Concurrent::AtomicBoolean.new(true)
+    @connection_mutex = Mutex.new
+  end
 
   def filter(event)
-    set_success = do_set(event)
-    get_success = do_get(event)
+    unless connection_available?
+      event.tag(@tag_on_failure)
+      return
+    end
 
-    filter_matched(event) if (set_success || get_success)
-  end # def filter
+    begin
+      set_success = do_set(event)
+      get_success = do_get(event)
+      filter_matched(event) if (set_success || get_success)
+    rescue Dalli::NetworkError, Dalli::RingError => e
+      event.tag(@tag_on_failure)
+      logger.error("memcached communication error",  hosts: @memcached_hosts, options: @memcached_options, message: e.message)
+      close
+    rescue => e
+      meta = { :message => e.message }
+      meta[:backtrace] = e.backtrace if logger.debug?
+      logger.error("unexpected error", meta)
+      event.tag(@tag_on_failure)
+    end
+  end
 
   def close
-    cache.close
+    @connection_mutex.synchronize do
+      @connected.make_false
+      cache.close
+    end
+  rescue => e
+    # we basically ignore any error here as we may be trying to close an invalid
+    # connection or if we close on shutdown we can also ignore any error
+    logger.debug("error closing memcached connection", :message => e.message)
   end
 
   private
@@ -141,19 +174,33 @@ class LogStash::Filters::Memcached < LogStash::Filters::Base
     return true
   end
 
-  def establish_connection
-    require 'dalli'
-
-    hosts = validate_connection_hosts
-    options = validate_connection_options
+  def new_connection(hosts, options)
     logger.debug('connecting to memcached', context(hosts: hosts, options: options))
-    Dalli::Client.new(@hosts, options).tap do |client|
-      begin
-        client.alive!
-      rescue Dalli::RingError
-        logger.error("failed to connect", context(hosts: hosts, options: options))
-        fail("cannot connect to memcached")
-      end
+    Dalli::Client.new(hosts, options).tap { |client| client.alive! }
+  end
+
+  # reconnect is not thread safe
+  def reconnect(hosts, options)
+    begin
+      @cache = new_connection(hosts, options)
+      @connected.make_true
+    rescue => e
+      logger.error("failed to reconnect to memcached", hosts: hosts, options: options, message: e.message)
+      @connected.make_false
+    end
+    return @connected.value
+  end
+
+  def connection_available?
+    # this method is called at every #filter method invocation and to minimize synchronization cost
+    # only @connected if fist check. The tradeoff is that another worker connection could be in the
+    # process of failing and @connected will not yet reflect that but this is acceptable for performance reason.
+    return true if @connected.true?
+
+    @connection_mutex.synchronize do
+      # the reconnection process is exclusive and will not be be concurrently performed in another worker
+      # by re-verifying the state of @connected from the exclusive code.
+      return @connected.true? ? true : reconnect(@memcached_hosts, @memcached_options)
     end
   end
 
@@ -165,8 +212,7 @@ class LogStash::Filters::Memcached < LogStash::Filters::Base
   end
 
   def validate_connection_hosts
-    logger.error("configuration: hosts empty!") && fail if @hosts.empty?
-
+    raise(LogStash::ConfigurationError, "'hosts' cannot be empty") if @hosts.empty?
     @hosts.map(&:to_s)
   end
 
@@ -178,4 +224,4 @@ class LogStash::Filters::Memcached < LogStash::Filters::Base
 
     @plugin_context.merge(hash)
   end
-end # class LogStash::Filters::Memcached
+end
