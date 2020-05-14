@@ -3,7 +3,6 @@ require "logstash/filters/base"
 require "logstash/namespace"
 require 'dalli'
 
-
 # This filter provides facilities to interact with Memcached.
 class LogStash::Filters::Memcached < LogStash::Filters::Base
 
