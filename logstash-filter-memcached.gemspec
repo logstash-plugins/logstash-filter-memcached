@@ -3,9 +3,9 @@ Gem::Specification.new do |s|
   s.version       = '1.0.2'
   s.licenses      = ['Apache-2.0']
   s.summary       = 'A Logstash filter plugin for interacting with memcached'
-  s.homepage      = 'https://github.com/yaauie/logstash-filter-memcached'
-  s.authors       = ['Ry Biesemeyer']
-  s.email         = 'ry.biesemeyer@elastic.co'
+  s.authors       = ["Elastic"]
+  s.email         = 'info@elastic.co'
+  s.homepage      = "http://www.elastic.co/guide/en/logstash/current/index.html"
   s.require_paths = ['lib']
 
   # Files
