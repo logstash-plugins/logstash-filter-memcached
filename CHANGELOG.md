@@ -1,3 +1,6 @@
+## 1.1.0
+ - Added better exception handling [#25](https://github.com/logstash-plugins/logstash-filter-memcached/pull/25)
+
 ## 1.0.2
  - Fixed issue with ttl not being set [#13](https://github.com/logstash-plugins/logstash-filter-memcached/pull/13)
 
