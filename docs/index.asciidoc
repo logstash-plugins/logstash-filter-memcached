@@ -93,10 +93,12 @@ filter plugins.
 
 The `hosts` parameter accepts an array of addresses corresponding to memcached instances.
 
-Hosts can be specified via FQDN (e.g., `example.com`), an IPV4 address (e.g., `123.45.67.89`), or an IPV6 address (e.g. `::1` or `2001:0db8:85a3:0000:0000:8a2e:0370:7334`).
+Hosts can be specified via FQDN (e.g., `example.com`), an IPV4 address (e.g., `123.45.67.89`), an IPV6 address (e.g. `::1` or `2001:0db8:85a3:0000:0000:8a2e:0370:7334`), or a UNIX socket (e.g. `/var/run/memcached/memcached.sock`).
 If your memcached host uses a non-standard port, the port can be specified by appending a colon (`:`) and the port number; to include a port with an IPv6 address, the address must first be wrapped in square-brackets (`[` and `]`), e.g., `[::1]:11211`.
 
 If more than one host is specified, requests will be distributed to the given hosts using a modulus of the CRC-32 checksum of each key.
+
+If using a UNIX socket, the user running Logstash needs to have read and write permissions to the socket file.
 
 [id="plugins-{type}s-{plugin}-namespace"]
 ===== `namespace`
