@@ -13,7 +13,8 @@ RUN yum install -y -q epel-release && yum install -y -q jq nc memcached socat
 # to point to the same source as /dev/urandom will set this globally.
 #
 # Note: even with this done, installing a logstash plugin still takes
-# an awful 86 seconds...
+# an awful 86 seconds... without it it takes about 110 seconds; not a
+# big change on this particular system, but when entropy is low...
 #
 RUN rm -f /dev/random; mknod /dev/random c 1 9
 
