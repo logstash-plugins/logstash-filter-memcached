@@ -80,7 +80,7 @@ class LogStash::Filters::Memcached < LogStash::Filters::Base
   # How large (in number of entries) the size of the in-memory LRU cache
   # should be that sits in front of memcached
   #
-  config :lru_cache_max_size, :validate => :number, :default => 1024
+  config :lru_cache_max_entries, :validate => :number, :default => 1024
 
   public
 
@@ -112,9 +112,9 @@ class LogStash::Filters::Memcached < LogStash::Filters::Base
     # within the same pipeline.
     #
     lru_cache = nil
-    if @lru_cache_ttl > 0 && @lru_cache_max_size > 0
+    if @lru_cache_ttl > 0 && @lru_cache_max_entries > 0
       lru_instance_id = "memcached-#{id}"
-      Thread.current[lru_instance_id] ||= LruRedux::Cache.new(@lru_cache_max_size)
+      Thread.current[lru_instance_id] ||= LruRedux::Cache.new(@lru_cache_max_entries)
       lru_cache = Thread.current[lru_instance_id]
       lru_cache.ttl = @lru_cache_ttl
     end
