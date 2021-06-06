@@ -39,3 +39,16 @@ That's a great speedup, but still much slower than I would have hoped, but let's
 
 ## Uses a thread-local client to avoid contention
 
+0.20 μs per event, 59.9 keps
+0.14 μs per event, 57.2 keps
+0.02 μs per event, 57.8 keps
+0.10 μs per event, 57.4 keps
+0.07 μs per event, 56.9 keps
+0.07 μs per event, 56.8 keps
+0.10 μs per event, 58.6 keps
+0.21 μs per event, 57.2 keps
+
+Very consistent and significant performance gain in terms of EPS. To go further would likely involve making this a pure Java plugin, or to this plugin use the multi_filter part of the Event API.
+
+Not quite sure what to make of the per event timing, other than the source data from the API is in milliseconds, so as we go into microsecond and nanosecond territory, it becomes less and less useful. The kEPS should still be quite valid, so rely on that, and ignore the 'μs per event' (maybe one day there will be a more suitable unit of time measurement via the API, who
+knows?)
