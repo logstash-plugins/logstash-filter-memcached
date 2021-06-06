@@ -1,10 +1,10 @@
 FROM docker.elastic.co/logstash/logstash-oss:7.13.1
 
-ARG version=1.1.0
+ARG version=1.2.0
 
 USER root
 
-RUN yum install -y -q epel-release && yum install -y -q jq nc memcached socat 
+RUN yum install -y -q epel-release && yum install -y -q jq nc memcached socat
 
 # Logstash-plugin can take a very long time to run; this can be due to entropy
 # starvation. In our use-case we don't need to worry about particularly
