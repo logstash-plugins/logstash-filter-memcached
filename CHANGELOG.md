@@ -1,3 +1,6 @@
+## 1.2.0
+ - Massive (10x) performance improvement, adding an (optional) thread-local LRU cache.
+
 ## 1.1.0
  - Added better exception handling [#25](https://github.com/logstash-plugins/logstash-filter-memcached/pull/25)
 

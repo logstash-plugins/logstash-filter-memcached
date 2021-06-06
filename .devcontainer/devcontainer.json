@@ -1,0 +1,10 @@
+{
+    "name": "Logstash Plugin Development",
+    "context": "..",
+    "dockerFile": "Dockerfile",
+    "settings": { 
+        "terminal.integrated.shell.linux": "/bin/bash"
+    },
+    //"mounts": [ "source=${localWorkspaceFolder},target=/work,type=bind" ],
+    "remoteUser": "builder"
+}

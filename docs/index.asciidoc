@@ -25,7 +25,8 @@ The Memcached filter provides integration with external data in Memcached.
 It currently provides the following facilities:
 
  * `get`: get values for one or more memcached keys and inject them into the event at the
- provided paths
+ provided paths. An in-process LRU cache can optionally also be added to significantly
+ reduce load and round-trip times to memcached.
  
  * `set`: set values from the event to the corresponding memcached keys
  
@@ -76,6 +77,8 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 | <<plugins-{type}s-{plugin}-namespace>> |<<string,string>>|No
 | <<plugins-{type}s-{plugin}-get>> |<<hash,hash>>|No
 | <<plugins-{type}s-{plugin}-set>> |<<hash,hash>>|No
+| <<plugins-{type}s-{plugin}-lru_cache_ttl>> |<<number,number>>|No
+| <<plugins-{type}s-{plugin}-lru_cache_max_entries>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-tag_on_failure>> |<<string,string>>|No
 | <<plugins-{type}s-{plugin}-ttl>> |<<number,number>>|No
 |=======================================================================
@@ -139,6 +142,50 @@ filter {
       "memcached-key-1" => "field1"
       "memcached-key-2" => "[nested][field2]"
     }
+  }
+}
+----
+
+[id="plugins-{type}s-{plugin}-lru_cache_ttl"]
+===== `lru_cache_ttl`
+
+  * Value type is <<number,number>>
+  * Default is 0, which disables this functionality.
+
+If greater than 0, and if `lru_cache_max_entries` is also greater than 0, data retrieved from memcached will be stored in a least-recently-used cache that is thread-local to the process, which can radically reduce the number of calls between logstash and memcached, particularly if the majority of your lookups are for the same keys that don't change much. This option specifies the time, in seconds, that the data should remain cached locally by this thread.
+
+Memory overhead and performance gain will determine on traffic patterns and size of the response from memcached. You should investigate monitoring performance using tools such as Logstash's REST API. There is no current mechanism to expose how many items are currently used by the cache.
+
+----
+filter {
+  memcached {
+    get => {
+      "%{device_ip}" => "device_info"
+    }
+    lru_cache_ttl => 60
+    lru_cache_max_entries => 1000
+  }
+}
+----
+
+[id="plugins-{type}s-{plugin}-lru_cache_max_entries"]
+===== `lru_cache_max_entries`
+
+  * Value type is <<number,number>>
+  * Default is 0, which disables this functionality.
+
+If greater than 0, and if `lru_cache_ttl` is also greater than 0, data retrieved from memcached will be stored in a least-recently-used cache that is thread-local to the process, which can radically reduce the number of calls between logstash and memcached, particularly if the majority of your lookups are for the same keys that don't change much. This option specifies the maximum number of entries that will be kept in the cache, particular to this thread.
+
+Memory overhead and performance gain will determine on traffic patterns and size of the response from memcached. You should investigate monitoring performance using tools such as Logstash's REST API. There is no current mechanism to expose how many items are currently used by the cache.
+
+----
+filter {
+  memcached {
+    get => {
+      "%{device_ip}" => "device_info"
+    }
+    lru_cache_ttl => 60
+    lru_cache_max_entries => 1000
   }
 }
 ----
