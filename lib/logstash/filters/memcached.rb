@@ -99,12 +99,26 @@ class LogStash::Filters::Memcached < LogStash::Filters::Base
     end
     @connected = Concurrent::AtomicBoolean.new(true)
     @connection_mutex = Mutex.new
+  end
 
-    @lru_cache = nil
+  def get_lru()
+    # We want each LRU cache to be thread-local, because there is no
+    # requirement for them to share the same cache, and the performance
+    # impact should be positive with less contention for accessing the
+    # shared cache.
+    #
+    # We also need to include the module instance ID, as there could
+    # very well be multiple instance of the memcached filter in operation
+    # within the same pipeline.
+    #
+    lru_cache = nil
     if @lru_cache_ttl > 0 && @lru_cache_max_size > 0
-      @lru_cache = LruRedux::ThreadSafeCache.new(@lru_cache_max_size)
-      @lru_cache.ttl = @lru_cache_ttl
+      lru_instance_id = "memcached-#{id}"
+      Thread.current[lru_instance_id] ||= LruRedux::Cache.new(@lru_cache_max_size)
+      lru_cache = Thread.current[lru_instance_id]
+      lru_cache.ttl = @lru_cache_ttl
     end
+    return lru_cache
   end
 
   def filter(event)
@@ -143,7 +157,10 @@ class LogStash::Filters::Memcached < LogStash::Filters::Base
   private
 
   def lru_cache_get_multi(memcached_client, memcached_keys)
-    if @lru_cache.nil?
+
+    lru_cache = get_lru()
+
+    if lru_cache.nil?
       logger.debug("using regular memcached client (no LRU cache)")
 
       return memcached_client.get_multi(memcached_keys)
@@ -154,15 +171,15 @@ class LogStash::Filters::Memcached < LogStash::Filters::Base
       responses = {}
       memcached_keys.each do |key|
 
-        if @lru_cache.has_key?(key)
+        if lru_cache.has_key?(key)
           logger.debug("lru_cache has key; returning from lru cache")
-          responses[key] = @lru_cache[key]
+          responses[key] = lru_cache[key]
         else
           logger.debug("lru_cache does not have key; getting from memcached and adding to cache")
           memcache_kv = memcached_client.get_multi([key])
-          responses[key] = @lru_cache[key] = memcache_kv[key]
-          logger.debug("lru_cache utilisation is now #{@lru_cache.count}")
-          logger.trace("lru_cache content is now #{@lru_cache.to_a}")
+          responses[key] = lru_cache[key] = memcache_kv[key]
+          logger.debug("lru_cache utilisation is now #{lru_cache.count}")
+          logger.trace("lru_cache content is now #{lru_cache.to_a}")
         end
       end
 
