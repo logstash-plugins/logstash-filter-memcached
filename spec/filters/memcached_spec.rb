@@ -24,7 +24,8 @@ describe LogStash::Filters::Memcached do
       let(:config) do
         {
           "hosts" => ["localhost:11211"],
-          "get" => { "success/%{success}/answer" => "[ultimate][answer]" }
+          "get" => { "success/%{success}/answer" => "[ultimate][answer]" },
+          "lru_cache_ttl" => 10
         }
       end
       let(:data) { { "success" => "true" } }

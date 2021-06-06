@@ -1,0 +1,42 @@
+#!/bin/bash
+
+poll_interval=1 # seconds
+
+get_stats() {
+    while true
+    do
+        curl -s 127.0.0.1:9600/_node/stats/pipelines/main \
+            | jq -r '.pipelines.main.plugins.filters[] | select(.id == "memcached-get") | "\(.events.duration_in_millis) \(.events.out)"'
+        sleep $poll_interval
+    done
+}
+
+get_stats | awk -v poll_interval=$poll_interval '
+
+    NR == 1 {
+        last_total_duration_millis = $1;
+        last_total_events = $2;
+        next;
+    }
+
+    NR > 1 {
+        duration_millis_delta = $1 - last_total_duration_millis;
+        events_delta = $2 - last_total_events;
+
+        # For each event, how much time was spent, in microseconds
+        if (events_delta == 0) {
+            usps = "-"
+        } else {
+            usps = duration_millis_delta*1000 / poll_interval / events_delta;
+        }
+
+        keps = events_delta / poll_interval / 1000.0;
+
+        printf("%.2f μs per event, %.1f keps\n", usps, keps);
+
+        last_total_duration_millis = $1;
+        last_total_events = $2;
+    }
+'
+
+

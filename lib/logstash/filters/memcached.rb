@@ -2,6 +2,7 @@
 require "logstash/filters/base"
 require "logstash/namespace"
 require 'dalli'
+require "lru_redux"
 
 # This filter provides facilities to interact with Memcached.
 class LogStash::Filters::Memcached < LogStash::Filters::Base
@@ -71,6 +72,16 @@ class LogStash::Filters::Memcached < LogStash::Filters::Base
   # Tags the event on failure. This can be used in later analysis.
   config :tag_on_failure, :validate => :string, :default => "_memcached_failure"
 
+  # How long to persist a result in the local in-memory cache, in seconds.
+  # A value of 0 will cause the in-memory cache to not be used.
+  #
+  config :lru_cache_ttl, :validate => :number, :default => 0
+
+  # How large (in number of entries) the size of the in-memory LRU cache
+  # should be that sits in front of memcached
+  #
+  config :lru_cache_max_size, :validate => :number, :default => 1024
+
   public
 
   attr_reader :cache
@@ -88,6 +99,12 @@ class LogStash::Filters::Memcached < LogStash::Filters::Base
     end
     @connected = Concurrent::AtomicBoolean.new(true)
     @connection_mutex = Mutex.new
+
+    @lru_cache = nil
+    if @lru_cache_ttl > 0 && @lru_cache_max_size > 0
+      @lru_cache = LruRedux::ThreadSafeCache.new(@lru_cache_max_size)
+      @lru_cache.ttl = @lru_cache_ttl
+    end
   end
 
   def filter(event)
@@ -125,6 +142,34 @@ class LogStash::Filters::Memcached < LogStash::Filters::Base
 
   private
 
+  def lru_cache_get_multi(memcached_client, memcached_keys)
+    if @lru_cache.nil?
+      logger.debug("using regular memcached client (no LRU cache)")
+
+      return memcached_client.get_multi(memcached_keys)
+
+    else
+      logger.debug("using LRU cache in front of memcached")
+
+      responses = {}
+      memcached_keys.each do |key|
+
+        if @lru_cache.has_key?(key)
+          logger.debug("lru_cache has key; returning from lru cache")
+          responses[key] = @lru_cache[key]
+        else
+          logger.debug("lru_cache does not have key; getting from memcached and adding to cache")
+          memcache_kv = memcached_client.get_multi([key])
+          responses[key] = @lru_cache[key] = memcache_kv[key]
+          logger.debug("lru_cache utilisation is now #{@lru_cache.count}")
+          logger.trace("lru_cache content is now #{@lru_cache.to_a}")
+        end
+      end
+
+      return responses
+    end
+  end
+
   def do_get(event)
     return false unless @get && !@get.empty?
 
@@ -134,7 +179,7 @@ class LogStash::Filters::Memcached < LogStash::Filters::Base
     end
 
     memcached_keys = event_fields_by_memcached_key.keys
-    cache_hits_by_memcached_key = cache.get_multi(memcached_keys)
+    cache_hits_by_memcached_key = lru_cache_get_multi(cache, memcached_keys)
 
     cache_hits = 0
     event_fields_by_memcached_key.each do |memcached_key, event_field|
