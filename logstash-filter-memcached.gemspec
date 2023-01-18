@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name          = 'logstash-filter-memcached'
-  s.version       = '1.1.0'
+  s.version       = '1.2.0'
   s.licenses      = ['Apache-2.0']
   s.summary       = 'A Logstash filter plugin for interacting with memcached'
   s.authors       = ["Elastic"]
@@ -18,6 +18,6 @@ Gem::Specification.new do |s|
 
   # Gem dependencies
   s.add_runtime_dependency "logstash-core-plugin-api", "~> 2.0"
-  s.add_runtime_dependency "dalli", "~> 2.7"
+  s.add_runtime_dependency "dalli", "~> 3"
   s.add_development_dependency 'logstash-devutils'
 end
