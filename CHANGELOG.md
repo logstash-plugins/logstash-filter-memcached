@@ -1,5 +1,5 @@
 ## 1.2.0
- - Upgrade Dalli to 3.x
+ - Upgrade Dalli to 3.x [#33](https://github.com/logstash-plugins/logstash-filter-memcached/pull/33)
 
 ## 1.1.0
  - Added better exception handling [#25](https://github.com/logstash-plugins/logstash-filter-memcached/pull/25)
